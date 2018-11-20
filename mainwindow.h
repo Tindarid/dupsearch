@@ -19,6 +19,8 @@ public:
 private slots:
     void select_directory();
     void scan_directory(QString const& dir);
+    bool find_duplicates(QString const& dir);
+    void show_no_dups();
     void show_about_dialog();
 
 private:

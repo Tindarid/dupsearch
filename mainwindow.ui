@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>631</width>
-    <height>451</height>
+    <width>616</width>
+    <height>495</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -47,6 +47,16 @@
       </column>
      </widget>
     </item>
+    <item>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="value">
+       <number>24</number>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -54,7 +64,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>631</width>
+     <width>616</width>
      <height>29</height>
     </rect>
    </property>
@@ -83,10 +93,11 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>false</bool>
+    <bool>true</bool>
    </attribute>
    <addaction name="actionScan_Directory"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionScan_Directory">
    <property name="text">
     <string>&amp;Scan Directory...</string>

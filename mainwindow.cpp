@@ -9,7 +9,7 @@
 #include <QMessageBox>
 #include <QDirIterator>
 #include <QCryptographicHash>
-#include <iostream>
+#include <ctime>
 
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
@@ -45,9 +45,27 @@ void main_window::select_directory() {
 }
 
 void main_window::scan_directory(QString const& dir) {
+    ui->statusBar->showMessage("Starting duplicates search ...");
+    clock_t begin = std::clock();
     ui->treeWidget->clear();
-    setWindowTitle(QString("Duplicates in directory - %1").arg(dir));
 
+    if (!find_duplicates(dir)) {
+        show_no_dups();
+    }
+
+    setWindowTitle(QString("Duplicates in directory - %1").arg(dir));
+    clock_t end = std::clock();
+    double seconds = double(end - begin) / CLOCKS_PER_SEC;
+    ui->statusBar->showMessage(QString("Finished in ") + QString::number(seconds) + QString("sec"));
+}
+
+void main_window::show_no_dups() {
+     QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
+     item->setText(0, "Found no duplicates");
+     ui->treeWidget->addTopLevelItem(item);
+}
+
+bool main_window::find_duplicates(QString const& dir) {
     // getting all filenames
     QDirIterator it(dir, QDir::Hidden | QDir::Files, QDirIterator::Subdirectories);
     QVector<QString> files;
@@ -55,50 +73,65 @@ void main_window::scan_directory(QString const& dir) {
         files.push_back(it.next());
     }
 
-    // generating hashes and grouping
-    QMap<QByteArray, QVector<QFileInfo*>> hashes;
-    QCryptographicHash sha(QCryptographicHash::Sha256);
+    // grouping
+    QMap<qint64, QVector<QString>> map;
     for (QString filename : files) {
-        sha.reset();
-        QFile file(filename);
-        if (file.open(QIODevice::ReadOnly)) {
-            sha.addData(&file);
-        }
-        QByteArray res = sha.result();
-        auto it = hashes.find(res);
-        if (it != hashes.end()) {
-            it->push_back(new QFileInfo(filename));
+        qint64 filesize = (new QFileInfo(filename))->size();
+        auto it = map.find(filesize);
+        if (it != map.end()) {
+            it->push_back(filename);
         } else {
-            QVector<QFileInfo*> temp;
-            temp.push_back(new QFileInfo(filename));
-            hashes.insert(res, temp);
+            QVector<QString> temp;
+            temp.push_back(filename);
+            map.insert(filesize, temp);
         }
     }
 
-    //finding duplicates
+    // finding duplicates
     bool flag = false;
-    for (auto it = hashes.begin(); it != hashes.end(); ++it) {
-        if (it->size() > 1) {
-            // adding to the tree
-            flag = true;
-            QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
-            item->setText(0, QString("Found ") + QString::number(it->size()) + QString(" duplicates"));
-            item->setText(1, QString::number(it->front()->size()) + QString(" bytes"));
-            for (QFileInfo* dup : *it) {
-               QTreeWidgetItem* childItem = new QTreeWidgetItem();
-               childItem->setText(0, dup->filePath());
-               item->addChild(childItem);
-            }
-            ui->treeWidget->addTopLevelItem(item);
+    int curState = 1;
+    QCryptographicHash sha(QCryptographicHash::Sha3_256);
+    for (auto it = map.begin(); it != map.end(); ++it, ++curState) {
+        if (it->size() <= 1) {
+            continue;
         }
+        QMap<QByteArray, QVector<QFileInfo*>> hashes;
+        for (QString filename : *it) {
+           sha.reset();
+           QFile file(filename);
+           if (file.open(QIODevice::ReadOnly)) {
+               sha.addData(&file);
+           }
+           QByteArray res = sha.result();
+           auto st = hashes.find(res);
+           if (st != hashes.end()) {
+               st->push_back(new QFileInfo(filename));
+           } else {
+               QVector<QFileInfo*> temp;
+               temp.push_back(new QFileInfo(filename));
+               hashes.insert(res, temp);
+           }
+        }
+        for (auto st = hashes.begin(); st != hashes.end(); ++st) {
+            if (st->size() > 1) {
+                // adding to the tree
+                flag = true;
+                QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
+                item->setText(0, QString("Found ") + QString::number(st->size()) + QString(" duplicates"));
+                item->setText(1, QString::number(st->front()->size()) + QString(" bytes"));
+                for (QFileInfo* dup : *st) {
+                   QTreeWidgetItem* childItem = new QTreeWidgetItem();
+                   childItem->setText(0, dup->filePath());
+                   item->addChild(childItem);
+                }
+                ui->treeWidget->addTopLevelItem(item);
+            }
+        }
+        ui->progressBar->setValue(100 * curState / map.size());
     }
 
-    // if no duplicates were found
-    if (!flag) {
-        QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
-        item->setText(0, "Found no duplicates");
-        ui->treeWidget->addTopLevelItem(item);
-    }
+    // finding duplicates
+    return flag;
 }
 
 void main_window::show_about_dialog() {
