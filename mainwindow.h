@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFileInfo>
 #include <memory>
 
 namespace Ui {
@@ -22,6 +23,7 @@ private slots:
     bool find_duplicates(QString const& dir);
     void show_no_dups();
     void show_about_dialog();
+    void add_to_tree(QDir const&, QVector<QFileInfo>);
 
 private:
     std::unique_ptr<Ui::MainWindow> ui;
