@@ -15,7 +15,11 @@ void Search::doSearch(QString const& dir) {
 
     QMap<qint64, QVector<QString>> groups;
     for (QString filename : filenames) {
-        qint64 filesize = QFileInfo(filename).size();
+        QFileInfo info(filename);
+        if (info.isSymLink()) {
+            continue;
+        }
+        qint64 filesize = info.size();
         auto it = groups.find(filesize);
         if (it != groups.end()) {
             it->push_back(filename);
