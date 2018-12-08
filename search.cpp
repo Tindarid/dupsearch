@@ -4,10 +4,11 @@
 #include <QMap>
 #include <QVector>
 #include <QThread>
+#include <sys/stat.h>
 
 void Search::doSearch(QString const& dir) {
     emit progressState(0);
-    QDirIterator it(dir, QDir::Hidden | QDir::Files, QDirIterator::Subdirectories);
+    QDirIterator it(dir, QDir::Hidden | QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
     QVector<QString> filenames;
     while (it.hasNext()) {
         filenames.push_back(it.next());
@@ -16,9 +17,6 @@ void Search::doSearch(QString const& dir) {
     QMap<qint64, QVector<QString>> groups;
     for (QString filename : filenames) {
         QFileInfo info(filename);
-        if (info.isSymLink()) {
-            continue;
-        }
         qint64 filesize = info.size();
         auto it = groups.find(filesize);
         if (it != groups.end()) {
